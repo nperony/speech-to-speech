@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech-to-speech-remote-speech"
+version = "0.1.0"
+description = "Headless OpenAI-compatible speech request transport from Hugging Face speech-to-speech"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["httpx>=0.28.0,<1"]
+
+[dependency-groups]
+dev = ["pytest>=9.0.2", "ruff>=0.15.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hf_s2s_remote_speech*"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
