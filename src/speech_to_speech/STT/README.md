@@ -1,5 +1,16 @@
 # STT Summary
 
+For applications that already own their microphone, VAD, turns, and transport,
+`packages/qwen-vllm-stt` provides a headless Qwen3-ASR/vLLM engine. It
+accepts 16 kHz PCM16 chunks, returns partial updates, and flushes the same
+per-stream Qwen state on explicit commit. The model, process-wide inference
+admission, timeout health, and per-stream state are owned here; applications
+still decide which audio to admit and must reject stale session results. Install
+the leaf distribution's optional `vllm` extra for GPU inference. This is not the `--stt qwen3-asr`
+Transformers handler or the whole-WAV `--stt openai` endpoint.
+
+See [headless Qwen/vLLM integration](../../../docs/headless-qwen-vllm-stt.md).
+
 This document summarizes the Speech-to-Text (STT) implementations in the `STT/` folder, including language support, language abbreviations, and usage in `s2s_pipeline.py`.
 
 ## Available STT Modes (`--stt`)
