@@ -107,3 +107,15 @@ def test_sync_iterator_remains_usable() -> None:
 
 def test_protocol_errors_are_not_retried() -> None:
     assert SpeechRequestError("invalid PCM").retryable is False
+
+
+def test_optional_strict_content_type_rejects_missing_type() -> None:
+    operation = HttpSpeechOperation(
+        endpoint_url="http://localhost/v1/audio/speech",
+        api_key=None,
+        payload={"input": "Hello", "response_format": "pcm"},
+        timeout_s=1,
+        accepted_content_types=frozenset({"audio/pcm"}),
+    )
+    with pytest.raises(SpeechRequestError, match="got=missing"):
+        operation._validate_content_type(httpx.Response(200))

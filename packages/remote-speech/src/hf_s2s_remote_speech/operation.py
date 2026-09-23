@@ -54,6 +54,7 @@ class HttpSpeechOperation:
         timeout_s: float,
         response_format: str | None = None,
         extra_headers: dict[str, str] | None = None,
+        accepted_content_types: frozenset[str] | None = None,
     ) -> None:
         if timeout_s <= 0:
             raise ValueError("timeout_s must be positive")
@@ -63,6 +64,7 @@ class HttpSpeechOperation:
         self.timeout_s = timeout_s
         self.response_format = response_format if response_format is not None else payload.get("response_format")
         self.extra_headers = dict(extra_headers or {})
+        self.accepted_content_types = accepted_content_types
         self._cancelled = Event()
         self._transport_lock = Lock()
         self._worker_loop: asyncio.AbstractEventLoop | None = None
@@ -261,6 +263,11 @@ class HttpSpeechOperation:
         if headers is None:
             return
         media_type = headers.get("content-type", "").partition(";")[0].strip().lower()
+        if self.accepted_content_types is not None and media_type not in self.accepted_content_types:
+            raise SpeechRequestError(
+                "speech endpoint returned unexpected content type: "
+                f"expected={sorted(self.accepted_content_types)} got={media_type or 'missing'}"
+            )
         if media_type.startswith("text/") or media_type == "application/json" or media_type.endswith("+json"):
             raise SpeechRequestError("speech endpoint returned a non-audio response")
         response_format = self.response_format
