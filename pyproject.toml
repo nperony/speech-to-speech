@@ -133,8 +133,8 @@ package = true
 prerelease = "allow"
 
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["speech_to_speech*"]
+where = ["src", "packages/smart-turn/src"]
+include = ["speech_to_speech*", "hf_s2s_smart_turn*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
