@@ -24,6 +24,10 @@ class SpeechRequestCancelled(RuntimeError):
 class SpeechRequestError(RuntimeError):
     """Sanitized HTTP/protocol failure safe to log or surface."""
 
+    def __init__(self, message: str, *, retryable: bool = False) -> None:
+        super().__init__(message)
+        self.retryable = retryable
+
 
 _SPEECH_STREAM_DONE = object()
 _SPEECH_STREAM_QUEUE_MAXSIZE = 2
@@ -93,7 +97,7 @@ class HttpSpeechOperation:
                 if remaining_s <= 0:
                     self._deadline_exceeded.set()
                     self.cancel()
-                    raise SpeechRequestError("speech request timed out")
+                    raise SpeechRequestError("speech request timed out", retryable=True)
                 try:
                     succeeded, value = results.get(timeout=min(_SPEECH_STREAM_POLL_INTERVAL_S, remaining_s))
                 except Empty:
@@ -215,7 +219,7 @@ class HttpSpeechOperation:
             completed = True
         except (TimeoutError, httpx.TimeoutException) as exc:
             self._deadline_exceeded.set()
-            raise SpeechRequestError("speech request timed out") from exc
+            raise SpeechRequestError("speech request timed out", retryable=True) from exc
         except asyncio.CancelledError:
             self._cancelled.set()
             raise
@@ -275,15 +279,15 @@ class HttpSpeechOperation:
         if isinstance(exc, (SpeechRequestCancelled, SpeechRequestError)):
             return exc
         if isinstance(exc, httpx.TimeoutException):
-            return SpeechRequestError("speech request timed out")
+            return SpeechRequestError("speech request timed out", retryable=True)
         if isinstance(exc, httpx.HTTPError):
             if self._deadline_exceeded.is_set():
-                return SpeechRequestError("speech request timed out")
+                return SpeechRequestError("speech request timed out", retryable=True)
             if self._cancelled.is_set():
                 return SpeechRequestCancelled()
-            return SpeechRequestError(f"speech transport failed: {type(exc).__name__}")
+            return SpeechRequestError(f"speech transport failed: {type(exc).__name__}", retryable=True)
         if self._deadline_exceeded.is_set():
-            return SpeechRequestError("speech request timed out")
+            return SpeechRequestError("speech request timed out", retryable=True)
         if self._cancelled.is_set():
             return SpeechRequestCancelled()
         return exc
@@ -307,7 +311,7 @@ class HttpSpeechOperation:
 
     def _raise_if_stopped(self, cancel_check: Callable[[], bool]) -> None:
         if self._deadline_exceeded.is_set():
-            raise SpeechRequestError("speech request timed out")
+            raise SpeechRequestError("speech request timed out", retryable=True)
         if self._cancelled.is_set() or cancel_check():
             self.cancel()
             raise SpeechRequestCancelled

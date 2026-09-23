@@ -91,9 +91,10 @@ def test_async_stream_enforces_total_deadline() -> None:
             return httpx.Response(200, headers={"content-type": "audio/pcm"}, stream=Stream())
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
-            with pytest.raises(SpeechRequestError, match="timed out"):
+            with pytest.raises(SpeechRequestError, match="timed out") as error:
                 async for _ in _operation(timeout_s=0.045).aiter_bytes(client):
                     pass
+            assert error.value.retryable is True
 
     asyncio.run(run())
 
@@ -102,3 +103,7 @@ def test_sync_iterator_remains_usable() -> None:
     operation = _operation()
     assert operation.response_format == "pcm"
     assert operation._headers() == {}
+
+
+def test_protocol_errors_are_not_retried() -> None:
+    assert SpeechRequestError("invalid PCM").retryable is False
